@@ -26,7 +26,22 @@ contract PresaleToken is Ownable {
    uint256 public constant PRESALE_STAGE_2_PRICE = 0.03 * 10**18; // $0.03 per token
    uint256 public constant PRESALE_STAGE_2_HARDCAP = 600_000 * 10**18; // $600,000
 
-   // Add more presale stage constants for stages 3-6
+   uint256 public constant PRESALE_STAGE_3_SUPPLY = 40_000_000 * 10**18;
+   uint256 public constant PRESALE_STAGE_3_PRICE = 0.05 * 10**18; // $0.05 per token
+   uint256 public constant PRESALE_STAGE_3_HARDCAP = 2_000_000 * 10**18; // $2,000,000
+
+   uint256 public constant PRESALE_STAGE_4_SUPPLY = 40_000_000 * 10**18;
+   uint256 public constant PRESALE_STAGE_4_PRICE = 0.065 * 10**18; // $0.065 per token
+   uint256 public constant PRESALE_STAGE_4_HARDCAP = 2_600_000 * 10**18; // $2.6 million
+
+   uint256 public constant PRESALE_STAGE_5_SUPPLY = 40_000_000 * 10**18;
+   uint256 public constant PRESALE_STAGE_5_PRICE = 0.085 * 10**18; // $0.085 per token
+   uint256 public constant PRESALE_STAGE_5_HARDCAP = 3_400_000 * 10**18; // $3,400,000
+   
+   uint256 public constant PRESALE_STAGE_6_SUPPLY = 40_000_000 * 10**18;
+   uint256 public constant PRESALE_STAGE_6_PRICE = 0.10 * 10**18; // $0.10 per token
+   uint256 public constant PRESALE_STAGE_6_HARDCAP = 4_000_000 * 10**18; // $4,000,000
+
    ERC20 private token;
    uint256 public presaleStage = 0;
    uint256 public presaleStartTime;
@@ -63,10 +78,31 @@ contract PresaleToken is Ownable {
            tokenPrice = PRESALE_STAGE_1_PRICE;
            supplyLimit = PRESALE_STAGE_1_SUPPLY;
            hardcap = PRESALE_STAGE_1_HARDCAP;
-       } else if (presaleStage == 2) {
+       } 
+       else if (presaleStage == 2) {
            tokenPrice = PRESALE_STAGE_2_PRICE;
            supplyLimit = PRESALE_STAGE_2_SUPPLY;
            hardcap = PRESALE_STAGE_2_HARDCAP;
+       }
+       else if (presaleStage == 3) {
+           tokenPrice = PRESALE_STAGE_3_PRICE;
+           supplyLimit = PRESALE_STAGE_3_SUPPLY;
+           hardcap = PRESALE_STAGE_3_HARDCAP;
+       }
+       else if (presaleStage == 4) {
+           tokenPrice = PRESALE_STAGE_4_PRICE;
+           supplyLimit = PRESALE_STAGE_4_SUPPLY;
+           hardcap = PRESALE_STAGE_4_HARDCAP;
+       }
+       else if (presaleStage == 5) {
+           tokenPrice = PRESALE_STAGE_5_PRICE;
+           supplyLimit = PRESALE_STAGE_5_SUPPLY;
+           hardcap = PRESALE_STAGE_5_HARDCAP;
+       }
+       else if (presaleStage == 6) {
+           tokenPrice = PRESALE_STAGE_6_PRICE;
+           supplyLimit = PRESALE_STAGE_6_SUPPLY;
+           hardcap = PRESALE_STAGE_6_HARDCAP;
        }
 
        require(_amount * tokenPrice <= hardcap - stageTotalRaised[presaleStage], "Hardcap reached");
