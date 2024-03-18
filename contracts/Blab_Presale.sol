@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Blab_Token.sol";
 
 interface IPresale {
     function buyTokens(uint256 amount) external payable;
@@ -12,7 +14,7 @@ interface IPresale {
 
     function getStageSupply(uint256 stage) external view returns (uint256);
 
-    function presaleActive() external view returns (bool);
+    function isPrivateSaleActive() external view returns (bool);
 
     function isWhitelisted(address account) external view returns (bool);
 }
@@ -32,6 +34,8 @@ contract BlabPresale is IPresale, Ownable {
     uint256 public constant STAGE5_PRICE = 85 * 10 ** 15; // $0.085
     uint256 public constant STAGE6_PRICE = 10 * 10 ** 17; // $0.10
 
+    BlabToken blabToken;
+
     uint256 public currentStage = 1;
     uint256 public currentStageSupply;
     uint256 public currentStagePrice;
@@ -39,15 +43,16 @@ contract BlabPresale is IPresale, Ownable {
     uint256 public saleStartTime;
     uint256 public saleEndTime;
 
-    bool public presaleActive = false;
+    bool public isPrivateSaleActive = false;
     mapping(address => bool) public privateSaleWhitelist;
 
-    constructor() {
+    constructor(BlabToken _blabToken) {
+        blabToken = _blabToken
         currentStageSupply = STAGE1_SUPPLY;
         currentStagePrice = STAGE1_PRICE;
 
-        saleStartTime = 1685638800; // June 1st, 2023, 00:00:00 UTC
-        saleEndTime = 1689840000; // July 11th, 2023, 23:59:59 UTC
+        saleStartTime = 1717196400000; // 6/1/2024, 0:00:00 AM
+        saleEndTime = 1718060424000; // 6/11/2024, 00:00:24 AM
     }
 
     function buyTokens(uint256 amount) external payable override {
@@ -58,7 +63,7 @@ contract BlabPresale is IPresale, Ownable {
         require(msg.value >= amount * currentStagePrice, "Insufficient funds");
         require(currentStageSupply >= amount, "Insufficient token supply");
 
-        if (presaleActive) {
+        if (isPrivateSaleActive) {
             require(
                 privateSaleWhitelist[msg.sender],
                 "Not whitelisted for private sale"
@@ -110,8 +115,8 @@ contract BlabPresale is IPresale, Ownable {
         revert("Invalid stage");
     }
 
-    function isPresaleActive() external view override returns (bool) {
-        return presaleActive;
+    function isPrivateSaleActive() external view override returns (bool) {
+        return isPrivateSaleActive;
     }
 
     function isWhitelisted(
@@ -121,7 +126,7 @@ contract BlabPresale is IPresale, Ownable {
     }
 
     function togglePrivateSale(bool status) external onlyOwner {
-        presaleActive = status;
+        isPrivateSaleActive = status;
     }
 
     function addToPrivateSaleWhitelist(
@@ -165,4 +170,12 @@ contract BlabPresale is IPresale, Ownable {
 
         currentStage = stage;
     }
+
+    // function withdrawFunds() external onlyOwner {
+    //     require(
+    //         block.timestamp > claimDeadline,
+    //         "Presale: Claim deadline has not passed yet"
+    //     );
+    //     payable(admin).transfer(address(this).balance);
+    // }
 }
