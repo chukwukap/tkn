@@ -19,7 +19,7 @@ interface IPresale {
     function isWhitelisted(address account) external view returns (bool);
 }
 
-contract BlabPresale is IPresale, Ownable {
+contract BlabPresale is IPresale, Ownable(msg.sender) {
     uint256 public constant STAGE1_SUPPLY = 20_000_000 * 10 ** 18;
     uint256 public constant STAGE2_SUPPLY = 20_000_000 * 10 ** 18;
     uint256 public constant STAGE3_SUPPLY = 40_000_000 * 10 ** 18;
@@ -43,11 +43,11 @@ contract BlabPresale is IPresale, Ownable {
     uint256 public saleStartTime;
     uint256 public saleEndTime;
 
-    bool public isPrivateSaleActive = false;
+    bool public isPrivateSaleActiveNow = false;
     mapping(address => bool) public privateSaleWhitelist;
 
     constructor(BlabToken _blabToken) {
-        blabToken = _blabToken
+        blabToken = _blabToken;
         currentStageSupply = STAGE1_SUPPLY;
         currentStagePrice = STAGE1_PRICE;
 
@@ -63,7 +63,7 @@ contract BlabPresale is IPresale, Ownable {
         require(msg.value >= amount * currentStagePrice, "Insufficient funds");
         require(currentStageSupply >= amount, "Insufficient token supply");
 
-        if (isPrivateSaleActive) {
+        if (isPrivateSaleActiveNow) {
             require(
                 privateSaleWhitelist[msg.sender],
                 "Not whitelisted for private sale"
@@ -116,7 +116,7 @@ contract BlabPresale is IPresale, Ownable {
     }
 
     function isPrivateSaleActive() external view override returns (bool) {
-        return isPrivateSaleActive;
+        return isPrivateSaleActiveNow;
     }
 
     function isWhitelisted(
@@ -126,7 +126,7 @@ contract BlabPresale is IPresale, Ownable {
     }
 
     function togglePrivateSale(bool status) external onlyOwner {
-        isPrivateSaleActive = status;
+        isPrivateSaleActiveNow = status;
     }
 
     function addToPrivateSaleWhitelist(
