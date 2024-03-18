@@ -3,179 +3,96 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./Blab_Token.sol";
 
-interface IPresale {
-    function buyTokens(uint256 amount) external payable;
+contract PresaleToken is ERC20, Ownable {
+   uint256 public constant TOTAL_SUPPLY = 1_000_000_000 * 10**18; // 1 billion tokens
 
-    function getCurrentStage() external view returns (uint256);
+   uint256 public constant PUBLIC_PRESALE_SUPPLY = 200_000_000 * 10**18; // 20%
+   uint256 public constant PRIVATE_SALE_SUPPLY = 125_000_000 * 10**18; // 12.5%
+   uint256 public constant LIQUIDITY_SUPPLY = 75_000_000 * 10**18; // 7.5%
+   uint256 public constant AIRDROP_REWARDS_SUPPLY = 50_000_000 * 10**18; // 5%
+   uint256 public constant STAKING_POOL_SUPPLY = 165_000_000 * 10**18; // 16.5%
+   uint256 public constant ADVISORY_SUPPLY = 30_000_000 * 10**18; // 3%
+   uint256 public constant TEAM_SUPPLY = 80_000_000 * 10**18; // 8%
+   uint256 public constant ECOSYSTEM_SUPPLY = 90_000_000 * 10**18; // 9%
+   uint256 public constant EXCHANGE_RESERVES_SUPPLY = 140_000_000 * 10**18; // 14%
+   uint256 public constant DEVELOPMENT_MARKETING_SUPPLY = 45_000_000 * 10**18; // 4.5%
 
-    function getStagePrice(uint256 stage) external view returns (uint256);
+   uint256 public constant PRESALE_STAGE_1_SUPPLY = 20_000_000 * 10**18;
+   uint256 public constant PRESALE_STAGE_1_PRICE = 0.02 * 10**18; // $0.02 per token
+   uint256 public constant PRESALE_STAGE_1_HARDCAP = 400_000 * 10**18; // $400,000
 
-    function getStageSupply(uint256 stage) external view returns (uint256);
+   uint256 public constant PRESALE_STAGE_2_SUPPLY = 20_000_000 * 10**18;
+   uint256 public constant PRESALE_STAGE_2_PRICE = 0.03 * 10**18; // $0.03 per token
+   uint256 public constant PRESALE_STAGE_2_HARDCAP = 600_000 * 10**18; // $600,000
 
-    function isPrivateSaleActive() external view returns (bool);
+   // Add more presale stage constants for stages 3-6
 
-    function isWhitelisted(address account) external view returns (bool);
-}
+   uint256 public presaleStage = 0;
+   uint256 public presaleStartTime;
+   uint256 public presaleEndTime;
 
-contract BlabPresale is IPresale, Ownable(msg.sender) {
-    uint256 public constant STAGE1_SUPPLY = 20_000_000 * 10 ** 18;
-    uint256 public constant STAGE2_SUPPLY = 20_000_000 * 10 ** 18;
-    uint256 public constant STAGE3_SUPPLY = 40_000_000 * 10 ** 18;
-    uint256 public constant STAGE4_SUPPLY = 40_000_000 * 10 ** 18;
-    uint256 public constant STAGE5_SUPPLY = 40_000_000 * 10 ** 18;
-    uint256 public constant STAGE6_SUPPLY = 40_000_000 * 10 ** 18;
+   mapping(uint256 => uint256) public stageTotalRaised;
 
-    uint256 public constant STAGE1_PRICE = 2 * 10 ** 16; // $0.02
-    uint256 public constant STAGE2_PRICE = 3 * 10 ** 16; // $0.03
-    uint256 public constant STAGE3_PRICE = 5 * 10 ** 16; // $0.05
-    uint256 public constant STAGE4_PRICE = 65 * 10 ** 15; // $0.065
-    uint256 public constant STAGE5_PRICE = 85 * 10 ** 15; // $0.085
-    uint256 public constant STAGE6_PRICE = 10 * 10 ** 17; // $0.10
+   event PresaleStageStarted(uint256 stage, uint256 startTime, uint256 endTime);
+   event TokensPurchased(address indexed buyer, uint256 amount, uint256 stage);
 
-    BlabToken blabToken;
+   constructor() ERC20("PresaleToken", "BLAB") {
+       _mint(address(this), TOTAL_SUPPLY);
+   }
 
-    uint256 public currentStage = 1;
-    uint256 public currentStageSupply;
-    uint256 public currentStagePrice;
+   function startPresaleStage(uint256 _stage, uint256 _startTime, uint256 _endTime) external onlyOwner {
+       require(_stage > 0 && _stage <= 6, "Invalid presale stage");
+       require(_startTime < _endTime, "Invalid time range");
+       presaleStage = _stage;
+       presaleStartTime = _startTime;
+       presaleEndTime = _endTime;
+       emit PresaleStageStarted(_stage, _startTime, _endTime);
+   }
 
-    uint256 public saleStartTime;
-    uint256 public saleEndTime;
+   function buyTokens(uint256 _amount) external payable {
+       require(presaleStage > 0 && presaleStage <= 6, "Presale not active");
+       require(block.timestamp >= presaleStartTime && block.timestamp <= presaleEndTime, "Presale not open");
 
-    bool public isPrivateSaleActiveNow = false;
-    mapping(address => bool) public privateSaleWhitelist;
+       uint256 tokenPrice;
+       uint256 supplyLimit;
+       uint256 hardcap;
 
-    constructor(BlabToken _blabToken) {
-        blabToken = _blabToken;
-        currentStageSupply = STAGE1_SUPPLY;
-        currentStagePrice = STAGE1_PRICE;
+       if (presaleStage == 1) {
+           tokenPrice = PRESALE_STAGE_1_PRICE;
+           supplyLimit = PRESALE_STAGE_1_SUPPLY;
+           hardcap = PRESALE_STAGE_1_HARDCAP;
+       } else if (presaleStage == 2) {
+           tokenPrice = PRESALE_STAGE_2_PRICE;
+           supplyLimit = PRESALE_STAGE_2_SUPPLY;
+           hardcap = PRESALE_STAGE_2_HARDCAP;
+       }
 
-        saleStartTime = 1717196400000; // 6/1/2024, 0:00:00 AM
-        saleEndTime = 1718060424000; // 6/11/2024, 00:00:24 AM
-    }
+       require(_amount * tokenPrice <= hardcap - stageTotalRaised[presaleStage], "Hardcap reached");
+       require(_amount * tokenPrice <= msg.value, "Insufficient ETH sent");
+       require(_amount <= supplyLimit - totalSupply(), "Insufficient token supply");
 
-    function buyTokens(uint256 amount) external payable override {
-        require(
-            block.timestamp >= saleStartTime && block.timestamp <= saleEndTime,
-            "Sale is not active"
-        );
-        require(msg.value >= amount * currentStagePrice, "Insufficient funds");
-        require(currentStageSupply >= amount, "Insufficient token supply");
+       stageTotalRaised[presaleStage] += _amount * tokenPrice;
+       _transfer(address(this), msg.sender, _amount);
 
-        if (isPrivateSaleActiveNow) {
-            require(
-                privateSaleWhitelist[msg.sender],
-                "Not whitelisted for private sale"
-            );
-        }
+       emit TokensPurchased(msg.sender, _amount, presaleStage);
+   }
 
-        currentStageSupply -= amount;
-    }
+   function withdrawEther(uint256 _amount) external onlyOwner {
+       require(_amount <= address(this).balance, "Insufficient balance");
+       payable(owner()).transfer(_amount);
+   }
 
-    function getCurrentStage() external view override returns (uint256) {
-        return currentStage;
-    }
-
-    function getStagePrice(
-        uint256 stage
-    ) external view override returns (uint256) {
-        if (stage == 1) {
-            return STAGE1_PRICE;
-        } else if (stage == 2) {
-            return STAGE2_PRICE;
-        } else if (stage == 3) {
-            return STAGE3_PRICE;
-        } else if (stage == 4) {
-            return STAGE4_PRICE;
-        } else if (stage == 5) {
-            return STAGE5_PRICE;
-        } else if (stage == 6) {
-            return STAGE6_PRICE;
-        }
-        revert("Invalid stage");
-    }
-
-    function getStageSupply(
-        uint256 stage
-    ) external view override returns (uint256) {
-        if (stage == 1) {
-            return STAGE1_SUPPLY;
-        } else if (stage == 2) {
-            return STAGE2_SUPPLY;
-        } else if (stage == 3) {
-            return STAGE3_SUPPLY;
-        } else if (stage == 4) {
-            return STAGE4_SUPPLY;
-        } else if (stage == 5) {
-            return STAGE5_SUPPLY;
-        } else if (stage == 6) {
-            return STAGE6_SUPPLY;
-        }
-        revert("Invalid stage");
-    }
-
-    function isPrivateSaleActive() external view override returns (bool) {
-        return isPrivateSaleActiveNow;
-    }
-
-    function isWhitelisted(
-        address account
-    ) external view override returns (bool) {
-        return privateSaleWhitelist[account];
-    }
-
-    function togglePrivateSale(bool status) external onlyOwner {
-        isPrivateSaleActiveNow = status;
-    }
-
-    function addToPrivateSaleWhitelist(
-        address[] memory addresses
-    ) external onlyOwner {
-        for (uint256 i = 0; i < addresses.length; i++) {
-            privateSaleWhitelist[addresses[i]] = true;
-        }
-    }
-
-    function removeFromPrivateSaleWhitelist(
-        address[] memory addresses
-    ) external onlyOwner {
-        for (uint256 i = 0; i < addresses.length; i++) {
-            privateSaleWhitelist[addresses[i]] = false;
-        }
-    }
-
-    function setCurrentStage(uint256 stage) external onlyOwner {
-        require(stage >= 1 && stage <= 6, "Invalid stage");
-
-        if (stage == 1) {
-            currentStageSupply = STAGE1_SUPPLY;
-            currentStagePrice = STAGE1_PRICE;
-        } else if (stage == 2) {
-            currentStageSupply = STAGE2_SUPPLY;
-            currentStagePrice = STAGE2_PRICE;
-        } else if (stage == 3) {
-            currentStageSupply = STAGE3_SUPPLY;
-            currentStagePrice = STAGE3_PRICE;
-        } else if (stage == 4) {
-            currentStageSupply = STAGE4_SUPPLY;
-            currentStagePrice = STAGE4_PRICE;
-        } else if (stage == 5) {
-            currentStageSupply = STAGE5_SUPPLY;
-            currentStagePrice = STAGE5_PRICE;
-        } else if (stage == 6) {
-            currentStageSupply = STAGE6_SUPPLY;
-            currentStagePrice = STAGE6_PRICE;
-        }
-
-        currentStage = stage;
-    }
-
-    // function withdrawFunds() external onlyOwner {
-    //     require(
-    //         block.timestamp > claimDeadline,
-    //         "Presale: Claim deadline has not passed yet"
-    //     );
-    //     payable(admin).transfer(address(this).balance);
-    // }
+   function distributeTokens() external onlyOwner {
+       _transfer(address(this), /*public presale address*/, PUBLIC_PRESALE_SUPPLY);
+       _transfer(address(this), /*private sale address*/, PRIVATE_SALE_SUPPLY);
+       _transfer(address(this), /*liquidity address*/, LIQUIDITY_SUPPLY);
+       _transfer(address(this), /*airdrop & rewards address*/, AIRDROP_REWARDS_SUPPLY);
+       _transfer(address(this), /*staking pool address*/, STAKING_POOL_SUPPLY);
+       _transfer(address(this), /*advisory address*/, ADVISORY_SUPPLY);
+       _transfer(address(this), /*team address*/, TEAM_SUPPLY);
+       _transfer(address(this), /*ecosystem address*/, ECOSYSTEM_SUPPLY);
+       _transfer(address(this), /*exchange reserves address*/, EXCHANGE_RESERVES_SUPPLY);
+       _transfer(address(this), /*development & marketing address*/, DEVELOPMENT_MARKETING_SUPPLY);
+   }
 }
