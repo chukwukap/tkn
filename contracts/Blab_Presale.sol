@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract PresaleToken is ERC20, Ownable {
+contract PresaleToken is Ownable {
    uint256 public constant TOTAL_SUPPLY = 1_000_000_000 * 10**18; // 1 billion tokens
 
    uint256 public constant PUBLIC_PRESALE_SUPPLY = 200_000_000 * 10**18; // 20%
@@ -27,7 +27,7 @@ contract PresaleToken is ERC20, Ownable {
    uint256 public constant PRESALE_STAGE_2_HARDCAP = 600_000 * 10**18; // $600,000
 
    // Add more presale stage constants for stages 3-6
-
+   ERC20 private token;
    uint256 public presaleStage = 0;
    uint256 public presaleStartTime;
    uint256 public presaleEndTime;
@@ -37,7 +37,8 @@ contract PresaleToken is ERC20, Ownable {
    event PresaleStageStarted(uint256 stage, uint256 startTime, uint256 endTime);
    event TokensPurchased(address indexed buyer, uint256 amount, uint256 stage);
 
-   constructor() ERC20("PresaleToken", "BLAB") {
+   constructor(address _tokenAddress) {
+    token = ERC20(_tokenAddress)
        _mint(address(this), TOTAL_SUPPLY);
    }
 
