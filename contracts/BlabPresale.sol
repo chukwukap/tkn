@@ -41,12 +41,14 @@ contract BlabPresale is Ownable(msg.sender) {
     uint256 public constant PRESALE_STAGE_6_PRICE = 0.10 * 10 ** 18; // $0.10 per token
     uint256 public constant PRESALE_STAGE_6_HARDCAP = 4_000_000 * 10 ** 18; // $4,000,000
 
-    ERC20 private token;
+    ERC20 public immutable token;
     uint256 public presaleStage = 0;
     //    uint256 public presaleStartTime;
     //    uint256 public presaleEndTime;
 
     mapping(uint256 => uint256) public stageTotalRaised;
+
+    mapping(address => bool) public privateSaleWhitelist;
 
     // , uint256 startTime, uint256 endTime
     event PresaleStageStarted(uint256 stage);
@@ -118,21 +120,17 @@ contract BlabPresale is Ownable(msg.sender) {
         emit TokensPurchased(msg.sender, _amount, presaleStage);
     }
 
+    function addToPrivateSaleWhitelist(
+        address[] memory _addresses
+    ) external onlyOwner {
+        require(_addresses.length == 0, "No address specified");
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            privateSaleWhitelist[_addresses[i]] = true;
+        }
+    }
+
     function withdrawEther(uint256 _amount) external onlyOwner {
         require(_amount <= address(this).balance, "Insufficient balance");
         payable(owner()).transfer(_amount);
     }
-
-    //    function distributeTokens() external onlyOwner {
-    //        _transfer(address(this), /*public presale address*/, PUBLIC_PRESALE_SUPPLY);
-    //        _transfer(address(this), /*private sale address*/, PRIVATE_SALE_SUPPLY);
-    //        _transfer(address(this), /*liquidity address*/, LIQUIDITY_SUPPLY);
-    //        _transfer(address(this), /*airdrop & rewards address*/, AIRDROP_REWARDS_SUPPLY);
-    //        _transfer(address(this), /*staking pool address*/, STAKING_POOL_SUPPLY);
-    //        _transfer(address(this), /*advisory address*/, ADVISORY_SUPPLY);
-    //        _transfer(address(this), /*team address*/, TEAM_SUPPLY);
-    //        _transfer(address(this), /*ecosystem address*/, ECOSYSTEM_SUPPLY);
-    //        _transfer(address(this), /*exchange reserves address*/, EXCHANGE_RESERVES_SUPPLY);
-    //        _transfer(address(this), /*development & marketing address*/, DEVELOPMENT_MARKETING_SUPPLY);
-    //    }
 }
